@@ -12,17 +12,23 @@ def calculate_1rm(weight: float, reps: int) -> float:
     return round(weight * (1 + (reps / 30.0)), 2)
 
 def render_workouts_tab():
-    """Renders workout logging & progressive overload analytics."""
+    """Renders structured set-by-set workout logging using Google Sheets schedule."""
     col_d1, col_d2 = st.columns([1, 1])
     with col_d1:
         selected_date = st.date_input("Workout Date", datetime.now(), key="log_date")
     
+    # 1. Fetch current schedule from Google Sheets FIRST
+    current_schedule = get_current_schedule()
+    
+    # 2. Get the day name (e.g. "Monday")
     day_name = selected_date.strftime("%A")
+    
+    # 3. Access today's plan from current_schedule
     today_plan = current_schedule.get(day_name, {"routine": "Custom", "exercises": []})
     
     st.markdown(f"""
-        <div style="background-color: #F8FAFC; border-left: 4px solid #2563EB; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;">
-            <span style="font-weight: 700; color: #1E293B;">{day_name}'s Plan:</span> 
+        <div style="background-color: #F8FAFC; border-left: 4px solid #2563EB; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+            <span style="font-weight: 700; color: #1E293B;">{day_name}'s Routine:</span> 
             <span style="color: #2563EB; font-weight: 600;">{today_plan['routine']}</span>
         </div>
     """, unsafe_allow_html=True)
