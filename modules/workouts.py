@@ -18,7 +18,7 @@ def render_workouts_tab():
         selected_date = st.date_input("Workout Date", datetime.now(), key="log_date")
     
     day_name = selected_date.strftime("%A")
-    today_plan = st.session_state.workout_schedule.get(day_name, {"routine": "Custom", "exercises": []})
+    today_plan = current_schedule.get(day_name, {"routine": "Custom", "exercises": []})
     
     st.markdown(f"""
         <div style="background-color: #F8FAFC; border-left: 4px solid #2563EB; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;">
