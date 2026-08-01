@@ -1,36 +1,27 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
+from streamlit_gsheets import GSheetsConnection
 
 # Page Configuration
 st.set_page_config(page_title="Personal Fitness Tracker", page_icon="🏋️‍♂️", layout="centered")
 
-DATA_FILE = "fitness_data.csv"
+# Initialize Google Sheets Connection
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Function to load existing data
+# Helper function to load data safely
 def load_data():
-    if os.path.exists(DATA_FILE):
-        return pd.read_csv(DATA_FILE)
-    else:
+    try:
+        df = conn.read(ttl="0s") # ttl=0 disables caching so new entries show immediately
+        # Remove empty rows if any
+        df = df.dropna(how="all")
+        return df
+    except Exception as e:
         return pd.DataFrame(columns=["Date", "Category", "Item", "Value", "Notes"])
-
-# Function to save new entry
-def save_entry(date, category, item, value, notes):
-    df = load_data()
-    new_data = pd.DataFrame([{
-        "Date": date,
-        "Category": category,
-        "Item": item,
-        "Value": float(value),
-        "Notes": notes
-    }])
-    df = pd.concat([df, new_data], ignore_index=True)
-    df.to_csv(DATA_FILE, index=False)
 
 st.title("🏋️‍♂️ Fitness & Body Tracker")
 
-# Sidebar navigation
+# Sidebar Navigation
 option = st.sidebar.radio("Navigation", ["Log Entry", "Progress Charts", "View Raw Data"])
 
 # --- TAB 1: LOG ENTRY ---
@@ -50,8 +41,22 @@ if option == "Log Entry":
     
     if st.button("Save Entry", type="primary"):
         if item and value > 0:
-            save_entry(entry_date.strftime("%Y-%m-%d"), category, item, value, notes)
-            st.success(f"Saved {item}: {value}")
+            existing_df = load_data()
+            
+            new_row = pd.DataFrame([{
+                "Date": entry_date.strftime("%Y-%m-%d"),
+                "Category": category,
+                "Item": item,
+                "Value": float(value),
+                "Notes": notes
+            }])
+            
+            updated_df = pd.concat([existing_df, new_row], ignore_index=True)
+            
+            # Update Google Sheet
+            conn.update(data=updated_df)
+            st.success(f"Saved to Google Sheets: {item} = {value}")
+            st.cache_data.clear()
         else:
             st.error("Please provide valid details before saving.")
 
@@ -60,37 +65,30 @@ elif option == "Progress Charts":
     st.header("📈 Progress Dashboard")
     df = load_data()
     
-    if not df.empty:
-        category_filter = st.selectbox("Select Category", df["Category"].unique())
+    if not df.empty and "Category" in df.columns:
+        category_filter = st.selectbox("Select Category", df["Category"].dropna().unique())
         filtered_df = df[df["Category"] == category_filter]
         
         if not filtered_df.empty:
-            item_filter = st.selectbox("Select Item / Exercise", filtered_df["Item"].unique())
-            chart_df = filtered_df[filtered_df["Item"] == item_filter].sort_values("Date")
+            item_filter = st.selectbox("Select Item / Exercise", filtered_df["Item"].dropna().unique())
+            chart_df = filtered_df[filtered_df["Item"] == item_filter].copy()
+            chart_df["Value"] = pd.to_numeric(chart_df["Value"], errors="coerce")
+            chart_df = chart_df.sort_values("Date")
             
             if not chart_df.empty:
                 st.subheader(f"Trend for {item_filter}")
                 st.line_chart(chart_df.set_index("Date")["Value"])
             else:
-                st.info("No data available for this item.")
+                st.info("No numerical data available to chart.")
     else:
-        st.info("No entries logged yet. Start by logging some entries!")
+        st.info("No entries logged yet in Google Sheets.")
 
 # --- TAB 3: VIEW RAW DATA ---
 elif option == "View Raw Data":
-    st.header("📋 All Logs")
+    st.header("📋 Google Sheets Live Data")
     df = load_data()
     
     if not df.empty:
         st.dataframe(df, use_container_width=True)
-        
-        # Download option for CSV backup
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download Data as CSV",
-            data=csv,
-            file_name="my_fitness_data_backup.csv",
-            mime="text/csv",
-        )
     else:
-        st.info("No data found.")
+        st.info("Google Sheet is currently empty.")
