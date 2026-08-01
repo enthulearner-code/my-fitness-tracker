@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from modules.database import append_entry, load_data
-from modules.schedule import init_schedule
+from modules.schedule import get_current_schedule
 
 def calculate_1rm(weight: float, reps: int) -> float:
     """Calculates Estimated 1-Rep Max using Epley's Formula."""
@@ -17,7 +17,6 @@ def render_workouts_tab():
     with col_d1:
         selected_date = st.date_input("Workout Date", datetime.now(), key="log_date")
     
-    init_schedule()
     day_name = selected_date.strftime("%A")
     today_plan = st.session_state.workout_schedule.get(day_name, {"routine": "Custom", "exercises": []})
     
