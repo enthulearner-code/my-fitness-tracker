@@ -246,13 +246,3 @@ with tab_data:
         )
     else:
         st.info("Your Google Sheet is currently empty.")
-
-### Key Improvements Made:
-1. **Dedicated Top Tabs (`st.tabs`)**:
-   * ** Workouts Tab:** Designed specifically for exercises, tracking load (kg), and recording sets/reps seamlessly into your logs. Features an exercise-specific line chart for strength progression.
-   * ** Body Metrics Tab:** Customized for body weight, waist, chest, biceps, and body fat percentage. Features an instant metric card showing your latest reading alongside trend charts.
-   * ** History Tab:** Clean view of all entries from Google Sheets with a 1-click CSV backup button.
-
-2. **Touch & Mobile-Optimized Styling**:
-   * Modern rounded buttons, cards, and tab highlights styled with CSS to look like a native mobile app when added to your Android homescreen.
-   * Form fields reset automatically upon submission to prevent accidental duplicate entries.
