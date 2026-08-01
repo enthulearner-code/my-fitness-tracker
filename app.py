@@ -246,7 +246,6 @@ with tab_data:
         )
     else:
         st.info("Your Google Sheet is currently empty.")
-```eofs
 
 ### Key Improvements Made:
 1. **Dedicated Top Tabs (`st.tabs`)**:
