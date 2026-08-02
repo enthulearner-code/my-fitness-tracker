@@ -5,7 +5,7 @@ from modules.workouts import render_workouts_tab
 from modules.schedule import render_schedule_tab
 from modules.body_metrics import render_body_metrics_tab
 from modules.progress import render_progress_tab
-from attendance_ui import render_attendance_tab
+from modules.attendance_ui import render_attendance_tab
 
 # Page Configuration
 st.set_page_config(
