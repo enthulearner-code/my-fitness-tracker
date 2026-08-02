@@ -40,7 +40,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Tab Navigation
-tab_today, tab_plan, tab_body, tab_data = st.tabs([
+tab_today, tab_progress, tab_plan, tab_body, tab_data = st.tabs([
     "🏋️ Log Today", 
     "📊 Progress Overview",
     "📅 Plan Schedule", 
