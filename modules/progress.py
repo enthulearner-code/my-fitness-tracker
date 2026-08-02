@@ -12,7 +12,6 @@ def parse_volume_from_notes(notes_str):
     if not isinstance(notes_str, str):
         return 0.0
     
-    # Extract set strings like "10r @ 50kg" or "10r @ 50.5kg"
     pattern = r"(\d+)\s*r\s*@\s*([\d\.]+)\s*kg"
     matches = re.findall(pattern, notes_str, re.IGNORECASE)
     
@@ -58,20 +57,19 @@ def render_progress_tab():
     df_workouts["ProgramDay"] = df_workouts["Notes"].apply(extract_program_day)
     df_workouts["Date"] = pd.to_datetime(df_workouts["Date"])
 
-    # Aggregate total volume per day (and program day)
+    # Aggregate total volume per Day & ProgramDay (handling multiple logs per date cleanly)
     daily_summary = (
-        df_workouts.groupby(["Date", "ProgramDay"])["Volume"]
+        df_workouts.groupby(["Date", "ProgramDay"], as_index=False)["Volume"]
         .sum()
-        .reset_index()
         .sort_values("Date")
     )
 
     st.markdown("### 📈 Total Volume Over Time")
     
-    # Filter by specific Program Day
+    available_days = sorted(list(daily_summary["ProgramDay"].unique()))
     day_filter = st.selectbox(
         "Filter by Program Day", 
-        ["All Days"] + list(daily_summary["ProgramDay"].unique())
+        ["All Days"] + available_days
     )
     
     filtered_df = daily_summary.copy()
@@ -79,12 +77,17 @@ def render_progress_tab():
         filtered_df = filtered_df[filtered_df["ProgramDay"] == day_filter]
 
     if not filtered_df.empty:
-        # Prepare chart dataframe
-        chart_data = filtered_df.pivot(index="Date", columns="ProgramDay", values="Volume").fillna(0)
+        # Deduplicate and format for st.line_chart
+        chart_df = filtered_df.pivot_table(
+            index="Date", 
+            columns="ProgramDay", 
+            values="Volume", 
+            aggfunc="sum"
+        ).fillna(0)
         
-        st.line_chart(chart_data)
+        st.line_chart(chart_df)
         
-        # Week-over-Week Comparison Cards
+        # Session Comparisons
         st.markdown("---")
         st.subheader("⚔️ Session Comparisons")
         
@@ -98,12 +101,12 @@ def render_progress_tab():
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.metric(
-                    label=f"Latest Session ({latest_session['Date'].strftime('%Y-%m-%d')})", 
+                    label=f"Latest ({latest_session['Date'].strftime('%Y-%m-%d')})", 
                     value=f"{latest_session['Volume']:,.0f} kg"
                 )
             with c2:
                 st.metric(
-                    label=f"Previous Session ({previous_session['Date'].strftime('%Y-%m-%d')})", 
+                    label=f"Previous ({previous_session['Date'].strftime('%Y-%m-%d')})", 
                     value=f"{previous_session['Volume']:,.0f} kg"
                 )
             with c3:
