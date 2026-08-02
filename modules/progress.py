@@ -57,7 +57,7 @@ def render_progress_tab():
     df_workouts["ProgramDay"] = df_workouts["Notes"].apply(extract_program_day)
     df_workouts["Date"] = pd.to_datetime(df_workouts["Date"])
 
-    # Aggregate total volume per Day & ProgramDay (handling multiple logs per date cleanly)
+    # Aggregate total volume per Day & ProgramDay
     daily_summary = (
         df_workouts.groupby(["Date", "ProgramDay"], as_index=False)["Volume"]
         .sum()
@@ -66,18 +66,22 @@ def render_progress_tab():
 
     st.markdown("### 📈 Total Volume Over Time")
     
-    available_days = sorted(list(daily_summary["ProgramDay"].unique()))
-    day_filter = st.selectbox(
-        "Filter by Program Day", 
-        ["All Days"] + available_days
-    )
+    c_f1, c_f2 = st.columns([2, 1])
+    with c_f1:
+        available_days = sorted(list(daily_summary["ProgramDay"].unique()))
+        day_filter = st.selectbox(
+            "Filter by Program Day", 
+            ["All Days"] + available_days
+        )
+    with c_f2:
+        chart_style = st.radio("Chart Style", ["Line Chart", "Area Chart"], horizontal=True)
     
     filtered_df = daily_summary.copy()
     if day_filter != "All Days":
         filtered_df = filtered_df[filtered_df["ProgramDay"] == day_filter]
 
     if not filtered_df.empty:
-        # Deduplicate and format for st.line_chart
+        # Pivot table cleanly aggregates values and prevents collisions
         chart_df = filtered_df.pivot_table(
             index="Date", 
             columns="ProgramDay", 
@@ -85,7 +89,10 @@ def render_progress_tab():
             aggfunc="sum"
         ).fillna(0)
         
-        st.line_chart(chart_df)
+        if chart_style == "Line Chart":
+            st.line_chart(chart_df, use_container_width=True)
+        else:
+            st.area_chart(chart_df, use_container_width=True)
         
         # Session Comparisons
         st.markdown("---")
@@ -101,12 +108,12 @@ def render_progress_tab():
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.metric(
-                    label=f"Latest ({latest_session['Date'].strftime('%Y-%m-%d')})", 
+                    label=f"Latest Session ({latest_session['Date'].strftime('%Y-%m-%d')})", 
                     value=f"{latest_session['Volume']:,.0f} kg"
                 )
             with c2:
                 st.metric(
-                    label=f"Previous ({previous_session['Date'].strftime('%Y-%m-%d')})", 
+                    label=f"Previous Session ({previous_session['Date'].strftime('%Y-%m-%d')})", 
                     value=f"{previous_session['Volume']:,.0f} kg"
                 )
             with c3:
