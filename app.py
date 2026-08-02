@@ -6,6 +6,7 @@ from modules.schedule import render_schedule_tab
 from modules.body_metrics import render_body_metrics_tab
 from modules.progress import render_progress_tab
 from modules.attendance_ui import render_attendance_tab
+from modules.body_metrics_ui import render_body_silhouette_tab
 
 # Page Configuration
 st.set_page_config(
@@ -41,12 +42,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Tab Navigation
-tab_today, tab_progress, tab_plan, tab_body, tab_attendance, tab_data = st.tabs([
+tab_today, tab_progress, tab_plan, tab_body, tab_attendance, tab_metrics, tab_data = st.tabs([
     "🏋️ Log Today", 
     "📊 Progress Overview",
     "📅 Plan Schedule", 
     "📐 Body Metrics", 
     "✅ Attendance",
+    "👤 Metrics",
     "📋 History"
 ])
 
