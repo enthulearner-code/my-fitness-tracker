@@ -3,34 +3,41 @@ import streamlit as st
 import pandas as pd
 from modules.database import load_schedule_from_sheets, save_schedule_to_sheets
 
-DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+# Flexible Day 1 to Day 7 sequence
+DAYS_OF_WEEK = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"]
 
 DEFAULT_SCHEDULE = {
-    "Monday": {"routine": "Chest & Triceps", "exercises": [
+    "Day 1": {"routine": "Push (Chest, Shoulders & Triceps)", "exercises": [
         {"name": "Bench Press", "default_sets": 3, "default_reps": 10},
         {"name": "Incline Dumbbell Press", "default_sets": 3, "default_reps": 12},
+        {"name": "Overhead Press", "default_sets": 3, "default_reps": 10},
         {"name": "Tricep Pushdown", "default_sets": 3, "default_reps": 12}
     ]},
-    "Tuesday": {"routine": "Back & Biceps", "exercises": [
+    "Day 2": {"routine": "Pull (Back & Biceps)", "exercises": [
         {"name": "Lat Pulldown", "default_sets": 3, "default_reps": 10},
         {"name": "Seated Cable Row", "default_sets": 3, "default_reps": 12},
         {"name": "Barbell Curl", "default_sets": 3, "default_reps": 10}
     ]},
-    "Wednesday": {"routine": "Rest Day / Cardio", "exercises": []},
-    "Thursday": {"routine": "Legs & Core", "exercises": [
+    "Day 3": {"routine": "Legs & Core", "exercises": [
         {"name": "Squat", "default_sets": 4, "default_reps": 8},
-        {"name": "Leg Press", "default_sets": 3, "default_reps": 12}
+        {"name": "Leg Press", "default_sets": 3, "default_reps": 12},
+        {"name": "Plank", "default_sets": 3, "default_reps": 60}
     ]},
-    "Friday": {"routine": "Shoulders & Arms", "exercises": [
-        {"name": "Overhead Press", "default_sets": 3, "default_reps": 10},
+    "Day 4": {"routine": "Rest & Recovery", "exercises": []},
+    "Day 5": {"routine": "Upper Body Focus", "exercises": [
+        {"name": "Dumbbell Row", "default_sets": 3, "default_reps": 10},
+        {"name": "Dumbbell Press", "default_sets": 3, "default_reps": 10},
         {"name": "Lateral Raise", "default_sets": 4, "default_reps": 15}
     ]},
-    "Saturday": {"routine": "Active Recovery", "exercises": []},
-    "Sunday": {"routine": "Rest Day", "exercises": []},
+    "Day 6": {"routine": "Lower Body Focus", "exercises": [
+        {"name": "Romanian Deadlift", "default_sets": 3, "default_reps": 10},
+        {"name": "Walking Lunges", "default_sets": 3, "default_reps": 12}
+    ]},
+    "Day 7": {"routine": "Rest & Active Recovery", "exercises": []},
 }
 
 def get_current_schedule():
-    """Loads schedule from Google Sheets, or falls back to defaults."""
+    """Loads schedule from Google Sheets or falls back to defaults."""
     df_sched = load_schedule_from_sheets()
     schedule_dict = {}
     
@@ -49,13 +56,13 @@ def get_current_schedule():
                         })
                 schedule_dict[day] = {"routine": str(routine), "exercises": ex_list}
             else:
-                schedule_dict[day] = DEFAULT_SCHEDULE[day]
+                schedule_dict[day] = DEFAULT_SCHEDULE.get(day, {"routine": "Rest Day", "exercises": []})
         return schedule_dict
     else:
         return DEFAULT_SCHEDULE
 
 def _save_all_schedule(current_schedule):
-    """Helper function to compile and write schedule dict to Google Sheets."""
+    """Helper function to write schedule dict to Google Sheets or session cache."""
     rows = []
     for day_name in DAYS_OF_WEEK:
         d_info = current_schedule[day_name]
@@ -81,15 +88,15 @@ def _save_all_schedule(current_schedule):
     save_schedule_to_sheets(schedule_df)
 
 def render_schedule_tab():
-    """Renders the persistent weekly planner UI."""
-    st.subheader("📅 Weekly Workout Planner")
-    st.caption("Customized plans save directly to your Google Sheet.")
+    """Renders the Day 1 - Day 7 planner UI."""
+    st.subheader("📅 7-Day Routine Program Planner")
+    st.caption("Define your 7-day routine split. You can execute these days whenever convenient.")
     
     current_schedule = get_current_schedule()
-    selected_edit_day = st.selectbox("Choose Day to Edit", DAYS_OF_WEEK)
-    day_data = current_schedule[selected_edit_day]
+    selected_edit_day = st.selectbox("Choose Routine Day to Edit", DAYS_OF_WEEK)
+    day_data = current_schedule.get(selected_edit_day, {"routine": "Rest Day", "exercises": []})
     
-    st.markdown(f"### Edit Plan for **{selected_edit_day}**")
+    st.markdown(f"### Edit **{selected_edit_day}**")
     new_routine_name = st.text_input("Routine Name / Focus", value=day_data["routine"])
     
     updated_exercises = []
@@ -121,7 +128,7 @@ def render_schedule_tab():
         with col_s:
             new_s = st.number_input("Default Sets", min_value=1, max_value=10, value=3, key=f"new_s_{selected_edit_day}")
         with col_r:
-            new_r = st.number_input("Default Reps", min_value=1, max_value=100, value=10, key=f"new_r_{selected_edit_day}")
+            new_r = st.number_input("Default Reps", min_value=1, max_value=10, value=10, key=f"new_r_{selected_edit_day}")
         
         if st.button("Add to Day's Schedule", type="secondary", use_container_width=True):
             if new_name.strip():
@@ -141,19 +148,19 @@ def render_schedule_tab():
                 st.warning("Please enter an exercise name.")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button(f"💾 Save All Routine & Exercise Changes for {selected_edit_day}", type="primary", use_container_width=True):
+    if st.button(f"💾 Save Changes for {selected_edit_day}", type="primary", use_container_width=True):
         current_schedule[selected_edit_day] = {
             "routine": new_routine_name.strip(),
             "exercises": updated_exercises
         }
         _save_all_schedule(current_schedule)
-        st.success(f"Saved {selected_edit_day}'s plan permanently!")
+        st.success(f"Saved {selected_edit_day}'s plan!")
         st.rerun()
 
     st.markdown("---")
-    st.subheader("📋 Your Current Weekly Plan")
+    st.subheader("📋 Your 7-Day Cycle Summary")
     for day in DAYS_OF_WEEK:
-        plan = current_schedule[day]
+        plan = current_schedule.get(day, {"routine": "Rest Day", "exercises": []})
         if plan["exercises"]:
             ex_summary = ", ".join([f"{e['name']} ({e['default_sets']}x{e['default_reps']})" for e in plan["exercises"]])
         else:
